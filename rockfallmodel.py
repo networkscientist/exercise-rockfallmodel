@@ -7,7 +7,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 
-
 #****************************************************
 #functions
 #****************************************************
@@ -35,6 +34,11 @@ def gridasciitonumpyarrayfloat(ingridfilefullpath):
         elif i==4:
             cellsize=float(line.strip().split()[-1])
             headerstr += line
+        elif i==5:
+            NODATA_value=float(line.strip().split()[-1])
+            arr=np.zeros((nrows, ncols), dtype=float)
+            arr[:,:]=NODATA_value
+            headerstr += line.replace("\n","")
         elif i > 5:
             col = 0
             while col < ncols:
@@ -124,7 +128,6 @@ def flowdirection_to_lowestcell(demarr, inrow, incolumn):
 #****************************************************
 
 
-
 #**************************************************************************
 #ENVIRONMENT variables - set workspace and names of input files
 #**************************************************************************
@@ -137,10 +140,11 @@ dem=gridasciitonumpyarrayfloat(myworkspace+"/"+"clipdem.asc")
 demarr=dem[0]
 demcols=dem[1]
 demrows=dem[2]
+headerstr=dem[7]
 plt.imshow(demarr)
 print("raster dimension: "+str(demcols)+ "columns and "+ str(demrows)+" rows")
 #import startpoint raster as numpy array. Input is a raster dataset with values = 1 for starting points of rockfall processes
-startarr=gridasciitonumpyarrayint(myworkspace+"/"+"startpointsall.asc")[0] #startarr=gridasciitonumpyarrayint(myworkspace+"/"+"start1.asc")[0]
+startarr=gridasciitonumpyarrayint(myworkspace+"/"+"start1.asc")[0] #startarr=gridasciitonumpyarrayint(myworkspace+"/"+"startpointsall.asc")[0]
 #visualize the raster
 plt.imshow(demarr)
 plt.imshow(startarr)
@@ -156,6 +160,7 @@ rows=int(np.shape(demarr)[0])
 cols=int(np.shape(demarr)[1])
 #create an array for output (with the same dimensions as dem array)
 outarr=np.zeros((rows, cols), dtype=int)
+plt.imshow(outarr)
 
 i=0
 j=0
@@ -175,7 +180,7 @@ while i <rows:
             #set initial conditions
             flowlength=0.0
             stopcondition = 0
-            angle=0.0
+            slope=0.0
             #x and y are the rows/column indices for the inner loop (trajectory modelling of a rockfall)
             x=i
             y=j
@@ -228,7 +233,7 @@ while i <rows:
                 #write the trajectory to the output raster
                 outarr[x,y]=1
                 #make a snapshot of the actual process
-                #plt.imsave(myworkspace+"/"+"step"+str(count)+".png", outarr) #comment this line out if you don't want to write an image file for each step
+                plt.imsave(myworkspace+"/"+"step"+str(count)+".png", outarr) #comment this line out if you don't want to write an image file for each step
                 count+=1
         j+=1
     i+=1
@@ -238,5 +243,6 @@ plt.imshow(outarr)
 #write the output to a raster file
 print("now write the output array ...")
 np.savetxt(myworkspace+"/"+"rockfallhazardzone.asc", outarr, fmt="%i", delimiter=" ", newline="\n", header=headerstr, comments="")
-print("output array written to")
+print("output array written")
+
 
