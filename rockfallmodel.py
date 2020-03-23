@@ -1,5 +1,5 @@
 #Example script for a simple rockfall model
-#Andreas Zischg, 19.03.2020
+#Andreas Zischg, Eva Amman 23.03.2020
 #Seminar Geodata Analysis and Modelling, Spring Semseter 2020
 
 #imports
@@ -123,6 +123,42 @@ def flowdirection_to_lowestcell(demarr, inrow, incolumn):
     else:
         flowdir=0
     return flowdir
+def flowdirection_to_steepestpath(demarr, inrow, incolumn, cellsize):
+    #this function looks at the 8 neighboring cells of a selected cell with given coordinate (inrow, incolumn)
+    #compares the z-coordinates of 8 adjacent neighbors with the z-coordinate of the center cell
+    #returns the relative coordinates of the lowest adjacent cell
+    z_center=demarr[inrow, incolumn]
+    if inrow > 0 and inrow < np.shape(demarr)[0]-1 and incolumn >0 and incolumn<np.shape(demarr)[1]-1:
+        slopetan = 0
+        flowdir = 0
+        #check the minimum value of all 8 adjacent neighbors
+        if (z_center-demarr[inrow + 0, incolumn + 1])/cellsize >= slopetan:
+            slopetan = (z_center - demarr[inrow + 0, incolumn + 1])/cellsize
+            flowdir = 1
+        if (z_center-demarr[inrow + 1, incolumn + 1])/(cellsize * math.sqrt(2)) >= slopetan:
+            slopetan = (z_center - demarr[inrow + 1, incolumn + 1])/(cellsize * math.sqrt(2))
+            flowdir = 2
+        if (z_center - demarr[inrow + 1, incolumn + 0])/cellsize >= slopetan:
+            slopetan = (z_center - demarr[inrow + 1, incolumn + 0])/cellsize
+            flowdir = 4
+        if (z_center - demarr[inrow + 1, incolumn - 1])/(cellsize * math.sqrt(2)) >= slopetan:
+            slopetan = (z_center - demarr[inrow + 1, incolumn - 1])/(cellsize * math.sqrt(2))
+            flowdir = 8
+        if (z_center - demarr[inrow + 0, incolumn - 1])/cellsize >= slopetan:
+            slopetan = (z_center - demarr[inrow + 0, incolumn - 1])/cellsize
+            flowdir = 16
+        if (z_center - demarr[inrow - 1, incolumn - 1])/(cellsize * math.sqrt(2)) >= slopetan:
+            slopetan = (z_center - demarr[inrow - 1, incolumn - 1])/(cellsize * math.sqrt(2))
+            flowdir = 32
+        if (z_center - demarr[inrow - 1, incolumn - 0])/cellsize >= slopetan:
+            slopetan = (z_center - demarr[inrow - 1, incolumn - 0])/cellsize
+            flowdir = 64
+        if (z_center - demarr[inrow - 1, incolumn + 1])/(cellsize * math.sqrt(2)) >= slopetan:
+            slopetan = (z_center - demarr[inrow - 1, incolumn + 1])/(cellsize * math.sqrt(2))
+            flowdir = 128
+    else:
+        flowdir=0
+    return flowdir
 #****************************************************
 # end functions
 #****************************************************
@@ -140,18 +176,20 @@ dem=gridasciitonumpyarrayfloat(myworkspace+"/"+"clipdem.asc")
 demarr=dem[0]
 demcols=dem[1]
 demrows=dem[2]
+cellsize=dem[5]
 headerstr=dem[7]
 plt.imshow(demarr)
 print("raster dimension: "+str(demcols)+ "columns and "+ str(demrows)+" rows")
 #import startpoint raster as numpy array. Input is a raster dataset with values = 1 for starting points of rockfall processes
-startarr=gridasciitonumpyarrayint(myworkspace+"/"+"start1.asc")[0] #startarr=gridasciitonumpyarrayint(myworkspace+"/"+"startpointsall.asc")[0]
+#startarr=gridasciitonumpyarrayint(myworkspace+"/"+"start1.asc")[0]
+startarr=gridasciitonumpyarrayint(myworkspace+"/"+"startpointsall.asc")[0]
 #visualize the raster
 plt.imshow(demarr)
 plt.imshow(startarr)
 
 #**************************************************************************
 #Model Parameter (slope angle, parameter that determines stop condition of a rockfall process
-slopeangleparameter=0.4#0.58 #% = 30 grad
+slopeangleparameter=0.455#0.58 #% = 30 grad
 #**************************************************************************
 
 
@@ -186,7 +224,9 @@ while i <rows:
             y=j
             #each pixel passed by the rockfall is set to value = 1
             outarr[i, j] += 1
-            flowdir=flowdirection_to_lowestcell(demarr, x, y)
+            #here there are two different functions for calculating the flow direction, try out one and comment out the other
+            #flowdir=flowdirection_to_lowestcell(demarr, x, y)
+            flowdir = flowdirection_to_steepestpath(demarr, x, y, cellsize)
             #check the next cell of the trajectory
             while x>=0 and x<rows and y>=0 and y<cols and stopcondition == 0:
                 flowdir = flowdirection_to_lowestcell(demarr, x, y)
@@ -233,7 +273,7 @@ while i <rows:
                 #write the trajectory to the output raster
                 outarr[x,y]=1
                 #make a snapshot of the actual process
-                plt.imsave(myworkspace+"/"+"step"+str(count)+".png", outarr) #comment this line out if you don't want to write an image file for each step
+                #plt.imsave(myworkspace+"/"+"step"+str(count)+".png", outarr) #comment this line out if you don't want to write an image file for each step
                 count+=1
         j+=1
     i+=1
@@ -242,7 +282,7 @@ print("loop done ...")
 plt.imshow(outarr)
 #write the output to a raster file
 print("now write the output array ...")
-np.savetxt(myworkspace+"/"+"rockfallhazardzone.asc", outarr, fmt="%i", delimiter=" ", newline="\n", header=headerstr, comments="")
+np.savetxt(myworkspace+"/"+"rockfallhazardzoneSteepestPathAllStartpoints.asc", outarr, fmt="%i", delimiter=" ", newline="\n", header=headerstr, comments="")
 print("output array written")
 
 
