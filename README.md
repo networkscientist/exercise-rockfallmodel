@@ -1,3 +1,3 @@
-# 2020-rockfallmodel
+# Exercise rockfall model
 a simple rockfall model (2D raster-based)
 for the seminar "Geodata analysis and modelling" Spring semester 2020, University of Bern
